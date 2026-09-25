@@ -8,16 +8,20 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
+
     - name: configure
-      run: ./configure
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
     - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+      run: cmake --build build --parallel
+
+    - name: ctest
+      working-directory: build
+      run: ctest --output-on-failure
+
+    - name: run
+      run: ./build/pro1
