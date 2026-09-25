@@ -12,6 +12,22 @@ C++ 学习练习仓库，主要记录指针与数组相关的示例代码。
 
 ## 构建方式
 
+### Visual Studio（推荐，VS 2019 及以上）
+
+需要安装「使用 C++ 的桌面开发」工作负载（含 MSVC 编译器与 CMake）。
+
+1. 打开 Visual Studio → **文件 → 打开 → 文件夹**，选择本仓库目录；
+2. VS 会自动识别 `CMakeLists.txt` 并完成配置；
+3. 在工具栏的启动项下拉框中选择 `pro1.exe`，按 **F5**（调试）或 **Ctrl+F5**（运行）即可。
+
+也可以用命令行：
+
+```bash
+cmake -S . -B out/build && cmake --build out/build --config Debug
+```
+
+### Dev-C++ 5.11
+
 使用随附的 `Makefile.win` 构建（需 Dev-C++ 自带的 MinGW64 工具链）：
 
 ```bash
