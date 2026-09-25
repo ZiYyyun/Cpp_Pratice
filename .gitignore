@@ -1,0 +1,15 @@
+# Build artifacts
+*.o
+*.obj
+*.exe
+*.res
+*.dll
+*.lib
+*.a
+
+# Dev-C++ compiled resources
+pro1_private.res
+
+# IDE folders
+.vs/
+.vscode/
