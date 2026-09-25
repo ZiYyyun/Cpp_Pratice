@@ -13,3 +13,10 @@ pro1_private.res
 # IDE folders
 .vs/
 .vscode/
+
+# WorkBuddy local data
+.workbuddy/
+
+# CMake build output
+out/
+build/

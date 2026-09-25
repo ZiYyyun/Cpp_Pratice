@@ -1,8 +1,9 @@
 #include <iostream>
+#include "ptr_for_arr.h"
 
 using namespace std;
 
-int task(int v_arr, int *v_ptr);
+int run_arr_pp_demo();
 
 int main(int argc, char** argv) {
 	int arr[5] = {10, 20, 30, 40, 50};
@@ -24,13 +25,15 @@ int main(int argc, char** argv) {
 
 
 		/*   指针遍历数组（from ptr_for_arr.h）   */
-	int arr[5] = {10, 20, 30, 40, 50};
 	printArray(arr, 5);
 
 
 
 
 
+
+	cout << "\n--- arr_pp_demo ---" << endl;
+	run_arr_pp_demo();
 
 	return 0;
 }

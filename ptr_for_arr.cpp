@@ -1,3 +1,5 @@
+#include "ptr_for_arr.h"
+#include <cstddef>
 
 using namespace std;
 

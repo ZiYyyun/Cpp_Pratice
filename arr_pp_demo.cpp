@@ -2,7 +2,7 @@
 
 using namespace std;
 
-int main(int argc, char** argv){
+int run_arr_pp_demo(){
 	int arr[5] = {10, 20, 30, 40, 50};
 	int *p = arr + 1;
 	
