@@ -33,7 +33,7 @@ void MyArray::insert(int pos, int value)
 
 void MyArray::print()
 {
-	
+
 	for (size_t i = 0; i < size; i++)
 		{
 			std::cout << arr[i] << std::endl;
