@@ -4,7 +4,7 @@ project(cpp_pra CXX)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(pro1 main.cpp arr_pp_demo.cpp ptr_for_arr.cpp)
+add_executable(pro1 main.cpp arr_pp_demo.cpp ptr_for_arr.cpp Dynamic_arr.cpp)
 
 enable_testing()
 add_test(NAME run_pro1 COMMAND $<TARGET_FILE:pro1>)

@@ -1,5 +1,6 @@
 #include <iostream>
 #include "ptr_for_arr.h"
+#include "Dynamic_arr.hpp"
 
 using namespace std;
 
@@ -34,6 +35,18 @@ int main(int argc, char** argv) {
 
 	cout << "\n--- arr_pp_demo ---" << endl;
 	run_arr_pp_demo();
+
+
+
+
+	/*  动态数组实现  */
+	cout << "dynamic arr" << endl;
+	MyArray myarr;
+	myarr.pushBack(10);
+	myarr.pushBack(20);
+	myarr.print();
+
+
 
 	return 0;
 }
