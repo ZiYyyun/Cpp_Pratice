@@ -20,7 +20,7 @@ void List::ListallElem(Node* head)
 
 void List::insertElem(int pos, int val)
 {
-	Node* newNode = newNode;
+	Node* newNode = new Node;
 	newNode->data = val;
 
 	if (pos == 0)
