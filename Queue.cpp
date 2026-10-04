@@ -26,8 +26,10 @@ void Queue::enqueue(int value)
 
 void Queue::dequeue()
 {
-	Node* temp = rear;
-	rear = nullptr;
+	//队列出列是从front出
+	Node* node = front;
+	front = front->next;
+	delete node;
+
 	size--;
-	delete temp;
 }
