@@ -20,3 +20,7 @@ pro1_private.res
 # CMake build output
 out/
 build/
+
+# Local tool logs and settings (not part of the project)
+Logs/
+Settings/
