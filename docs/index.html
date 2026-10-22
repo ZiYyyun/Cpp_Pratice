@@ -1612,6 +1612,175 @@ D.register({
         '① next[0] = -1 是一个约定的"标记"，表示"第一个字符就失配，i 必须往前挪"；<br>' +
         '② 求 next 数组本身也是一个"自己匹配自己"的过程，代码只有 6 行；<br>' +
         '③ 有的教材把数组整体加 1（next[0]=0），只是下标基准不同，原理一样，看代码时先看清用哪种。'));
+    doc.appendChild(c4);
+
+    /* ---------------- KMP 专题 ---------------- */
+    const c4b = D.card({ title: 'KMP 专题：把 next 数组一次算到底', icon: '⚡', badge: '深挖' });
+    D.html(c4b.querySelector('.body'),
+      '<h3 class="sec">第 1 步：手工把 next 推出来（考试最爱考这个）</h3>' +
+      '<p>用模式串 P = <code class="inl">"ababaa"</code> 演示。next[j] 看的是 <b>P[0..j-1]</b> 这个前缀串里，"最长的相等前后缀"有多长。' +
+      '注意"真前缀"不能是整个串本身，所以长度一定小于 j。</p>' +
+      D.table(['j', 'P[0..j-1]', '相等的前缀 / 后缀', '长度', 'next[j]'], [
+        ['0', '（空）', '—', '—', '<b>-1</b>'],
+        ['1', 'a', '无（真前缀不能是它自己）', '0', '<b>0</b>'],
+        ['2', 'ab', '无', '0', '<b>0</b>'],
+        ['3', 'aba', 'a == a', '1', '<b>1</b>'],
+        ['4', 'abab', 'ab == ab', '2', '<b>2</b>'],
+        ['5', 'ababa', 'aba == aba', '3', '<b>3</b>'],
+      ]) +
+      '<p>所以 <b>next = [-1, 0, 0, 1, 2, 3]</b>。拿它去匹配主串 "ababababca" 时，你在 j=5 失配，j 会跳到 3，' +
+      '因为已经匹配上的 "ababa" 里，前三个 "aba" 和后三个 "aba" 一样，这三位不用重比。</p>' +
+
+      '<h3 class="sec">第 2 步：求 next 的代码（只有 6 行）</h3>' +
+      '<p>这段代码本质上是"<b>模式串自己匹配自己</b>"：j 是后缀的扫描指针，k 是前缀的末尾。完全相同、相等就一起前进，不等就让 k 顺着 next 往回退。</p>' +
+      D.code([
+        '// P 是模式串：data 是字符数组，length 是长度',
+        'void getNext(SString P, int next[])',
+        '{',
+        '    int j = 0;              // 正在给 next[j] 求值',
+        '    int k = -1;             // 当前"最长相等前后缀"的长度（也指向前缀末尾）',
+        '    next[0] = -1;',
+        '',
+        '    while (j < P.length - 1)',
+        '    {',
+        '        if (k == -1 || P.data[j] == P.data[k])',
+        '        {',
+        '            j++;',
+        '            k++;',
+        '            next[j] = k;    // 前后缀又对上了一位，长度 +1',
+        '        }',
+        '        else',
+        '        {',
+        '            k = next[k];    // 对不上，k 往回退 —— 这就是 KMP 的精髓',
+        '        }',
+        '    }',
+        '}'
+      ].join('\n'), 'cpp', 'getNext.cpp') +
+      D.table(['这一行', '在干什么'], [
+        ['int j = 0, k = -1;', 'j 从 1 开始求（next[0] 是约定值），k = -1 表示"目前还没找到任何相等前后缀"'],
+        ['while (j &lt; P.length - 1)', '求到 next[length-1] 就够了，所以是 length-1'],
+        ['k == -1 \|\| P[j] == P[k]', '<b>k == -1 是"退到头了"的信号</b>，此时必须让 j 前进；否则比较当前字符'],
+        ['next[j] = k', '相等之后长度 +1，这就是 next[j]'],
+        ['k = next[k]', '<b>失败时只退 k，j 不动</b>——和匹配时"只退 j、i 不动"是同一个思想'],
+      ]) +
+
+      '<h3 class="sec">第 3 步：nextval —— 再快一点点</h3>' +
+      '<p>next 有个小毛病：如果退过去的那一位和当前位字符<b>相同</b>，那退过去也一样会失配，等于白退一次。' +
+      'nextval 就是提前把这种情况"再往前推一步"。</p>' +
+      '<p>以 "ababaa" 为例：next = [-1,0,0,1,2,3]，而 <b>nextval = [-1,0,-1,0,-1,3]</b>——中间几项直接跳得更远。</p>' +
+      D.code([
+        '// nextval：如果退过去的那位字符和当前位相同，就干脆再往前退',
+        'void getNextVal(SString P, int nextval[])',
+        '{',
+        '    int j = 0;',
+        '    int k = -1;',
+        '    nextval[0] = -1;',
+        '',
+        '    while (j < P.length - 1)',
+        '    {',
+        '        if (k == -1 || P.data[j] == P.data[k])',
+        '        {',
+        '            j++;',
+        '            k++;',
+        '',
+        '            if (P.data[j] != P.data[k])',
+        '            {',
+        '                nextval[j] = k;',
+        '            }',
+        '            else',
+        '            {',
+        '                nextval[j] = nextval[k];   // 和前缀那位一样，直接跳过去',
+        '            }',
+        '        }',
+        '        else',
+        '        {',
+        '            k = nextval[k];',
+        '        }',
+        '    }',
+        '}'
+      ].join('\n'), 'cpp', 'getNextVal.cpp') +
+      D.note('tip', '考试怎么考',
+        '① <b>给模式串，手写 next 数组</b>——按上面那张表一格一格推，别背；<br>' +
+        '② <b>给模式串和主串，写出匹配过程</b>——画两个指针，失配时只动 j；<br>' +
+        '③ <b>问 next 和 nextval 的区别</b>——答"当 P[j] == P[next[j]] 时 nextval 会继续往前退，避免无效比较"。') +
+      '<h3 class="sec">第 4 步：一份可以直接跑的最小 KMP 程序</h3>' +
+      '<p>把上面两个函数串起来就是完整程序。复制到 Dev-C++ 里编译运行，输出应该是 <code class="inl">next 数组: -1 0 0 0 1</code> 和 <code class="inl">KMP 匹配位置 = 5</code>。</p>' +
+      D.code([
+        '#include <stdio.h>',
+        '',
+        'int nextArr[256];',
+        '',
+        '/* ---------- 求 next 数组 ---------- */',
+        'void getNext(const char* p, int m)',
+        '{',
+        '    int j = 0;',
+        '    int k = -1;',
+        '    nextArr[0] = -1;',
+        '',
+        '    while (j < m - 1)',
+        '    {',
+        '        if (k == -1 || p[j] == p[k])',
+        '        {',
+        '            j++;',
+        '            k++;',
+        '            nextArr[j] = k;',
+        '        }',
+        '        else',
+        '        {',
+        '            k = nextArr[k];',
+        '        }',
+        '    }',
+        '}',
+        '',
+        '/* ---------- KMP 匹配：返回首次出现的下标，找不到返回 -1 ---------- */',
+        'int kmp(const char* t, int n, const char* p, int m)',
+        '{',
+        '    int i = 0;      // 主串指针，永不回退',
+        '    int j = 0;      // 模式串指针',
+        '',
+        '    while (i < n && j < m)',
+        '    {',
+        '        if (j == -1 || t[i] == p[j])',
+        '        {',
+        '            i++;',
+        '            j++;',
+        '        }',
+        '        else',
+        '        {',
+        '            j = nextArr[j];     // i 不动，只退 j',
+        '        }',
+        '    }',
+        '',
+        '    if (j == m)',
+        '    {',
+        '        return i - j;           // 匹配成功，返回起始下标',
+        '    }',
+        '    return -1;',
+        '}',
+        '',
+        'int main()',
+        '{',
+        '    const char* t = "ababcabcacbab";',
+        '    const char* p = "abcac";',
+        '',
+        '    getNext(p, 5);',
+        '',
+        '    printf("next 数组: ");',
+        '    for (int i = 0; i < 5; i++)',
+        '    {',
+        '        printf("%d ", nextArr[i]);',
+        '    }',
+        '    printf("\n");',
+        '',
+        '    printf("KMP 匹配位置 = %d\n", kmp(t, 13, p, 5));',
+        '    return 0;',
+        '}'
+      ].join('\n'), 'c', 'kmp.c') +
+      D.note('warn', '三个最常见的 bug',
+        '① <b>忘了 j == -1 这一支</b>：模式串第一个字符就失配时，j 会变成 -1，数组直接越界。循环条件必须写 <code class="inl">j == -1 || ...</code>；<br>' +
+        '② <b>getNext 里写成 j &lt; m</b>：应该是 <code class="inl">j &lt; m - 1</code>，否则 next 数组会越界写；<br>' +
+        '③ <b>把 next[j] 和 next[j-1] 搞混</b>：失配发生在 j 时，跳的是 next[j]，不是 next[j-1]。'));
+    doc.appendChild(c4b);
 
     const c5 = D.card({ title: '分步实现 · C / C++ / Rust', icon: '⌨️', badge: '7 个步骤' });
     D.html(c5.querySelector('.body'),
@@ -2399,6 +2568,103 @@ D.register({
       }
     });
     doc.appendChild(c2);
+
+    /* ---------------- 地址计算专题 ---------------- */
+    const c2b = D.card({ title: '专题：行优先存储时，地址到底怎么算', icon: '📐', badge: '考试必考' });
+    const b2b = c2b.querySelector('.body');
+    D.html(b2b,
+      '<h3 class="sec">先把两个版本分清楚</h3>' +
+      '<p>设二维数组有 <b>m 行、n 列</b>，首地址是 <b>Base</b>，每个元素占 <b>L</b> 个字节。' +
+      '真正要算的永远是同一个东西：<b>目标元素前面一共有多少个元素</b>（= offset），地址 = Base + offset × L。</p>' +
+      D.table(['存储方式', '元素个数', 'offset（下标从 0 开始）', 'offset（下标从 1 开始）'], [
+        ['<b>行优先</b>（C/C++）', 'm × n', '<b>i × n + j</b>', '(i−1) × n + (j−1)'],
+        ['<b>列优先</b>（Fortran / MATLAB）', 'm × n', '<b>j × m + i</b>', '(j−1) × m + (i−1)'],
+      ]) +
+      '<p>记忆口诀：<b>行优先就"整行整行地数"，列优先就"整列整列地数"</b>。' +
+      '行优先时前面有 i 整行、每行 n 个，所以是 i × n，再加本行的 j；列优先同理，只是 m 和 n 换了位置。</p>' +
+
+      '<h3 class="sec">四道典型题（都是同一套算法）</h3>' +
+      D.table(['题', '已知', '求', '解法'], [
+        ['① 正向，0 基', '<code class="inl">int a[4][5]</code>，Base = 2000，L = 4，行优先', 'a[2][3] 的地址',
+          'offset = 2×5 + 3 = <b>13</b><br>地址 = 2000 + 13×4 = <b>2052</b>'],
+        ['② 同一题，1 基写法', '把 a[2][3] 看成"第 3 行第 4 列"', '同上',
+          'offset = (3−1)×5 + (4−1) = <b>13</b><br>地址 = 2000 + 13×4 = <b>2052</b>（结果必然一样）'],
+        ['③ 换成列优先', '同上，但按列优先存', 'a[2][3] 的地址',
+          'offset = 3×<b>4</b> + 2 = <b>14</b>（注意乘的是行数 m = 4）<br>地址 = 2000 + 14×4 = <b>2056</b>'],
+        ['④ 反过来求首地址', '行优先，已知 a[3][4] = 2092，m=4、n=5、L=4', 'a[1][2] 的地址',
+          'offset(3,4) = 3×5+4 = 19 → Base = 2092 − 19×4 = <b>2016</b><br>' +
+          'offset(1,2) = 1×5+2 = 7 → 地址 = 2016 + 7×4 = <b>2044</b>'],
+      ]) +
+      D.note('warn', '最容易错的两个地方',
+        '① <b>行优先乘的是"列数 n"，不是"行数 m"</b>——因为一行有 n 个元素，跳过一整行就跳过 n 个；<br>' +
+        '② <b>下标从几开始要看清楚</b>：题目说 a[1][1] 是首元素，就用 1 基公式；说 a[0][0] 是首元素，就用 0 基公式。' +
+        '两种写法算出来一定一样，别混着用。'));
+
+    /* --- 交互计算器 --- */
+    const IS = 'width:72px;padding:5px 7px;border-radius:7px;border:1px solid var(--line2);background:#0b1322;color:var(--text);font-family:var(--mono);font-size:12.5px;outline:none';
+    const calcWrap = D.el('div');
+    calcWrap.style.cssText = 'border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:rgba(90,169,255,.05);margin-top:16px';
+    calcWrap.innerHTML =
+      '<div style="font-size:13px;color:#9fc6ff;margin-bottom:10px">🧮 自己算一遍（改任意一个数，下面实时更新）</div>' +
+      '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;font-size:12px;color:#93a6c8">' +
+      '<label>行数 m<br><input data-k="m" type="number" value="4" style="' + IS + '"></label>' +
+      '<label>列数 n<br><input data-k="n" type="number" value="5" style="' + IS + '"></label>' +
+      '<label>首地址 Base<br><input data-k="base" type="number" value="2000" style="' + IS + '"></label>' +
+      '<label>每元素 L<br><input data-k="L" type="number" value="4" style="' + IS + '"></label>' +
+      '<label>行下标 i<br><input data-k="i" type="number" value="2" style="' + IS + '"></label>' +
+      '<label>列下标 j<br><input data-k="j" type="number" value="3" style="' + IS + '"></label>' +
+      '<label>存法<br><select data-k="order" style="' + IS + ';width:96px"><option value="row">行优先</option><option value="col">列优先</option></select></label>' +
+      '<label>下标从<br><select data-k="idx" style="' + IS + ';width:96px"><option value="0">0 开始</option><option value="1">1 开始</option></select></label>' +
+      '</div>' +
+      '<div data-k="out" style="margin-top:14px;font-family:var(--mono);font-size:13px;line-height:1.9;color:#7ef0e6"></div>';
+    b2b.appendChild(calcWrap);
+
+    (function () {
+      function g(k) { return calcWrap.querySelector('[data-k="' + k + '"]'); }
+      function run() {
+        var m = parseInt(g('m').value, 10) || 1;
+        var n = parseInt(g('n').value, 10) || 1;
+        var base = parseInt(g('base').value, 10) || 0;
+        var L = parseInt(g('L').value, 10) || 1;
+        var i = parseInt(g('i').value, 10) || 0;
+        var j = parseInt(g('j').value, 10) || 0;
+        var isRow = g('order').value === 'row';
+        var oneBased = g('idx').value === '1';
+
+        var ri = oneBased ? i - 1 : i;
+        var cj = oneBased ? j - 1 : j;
+
+        if (ri < 0 || ri >= m || cj < 0 || cj >= n) {
+          g('out').innerHTML = '<span style="color:#ff6b81">下标越界：i 应在 ' +
+            (oneBased ? 1 : 0) + '~' + (oneBased ? m : m - 1) + '，j 应在 ' +
+            (oneBased ? 1 : 0) + '~' + (oneBased ? n : n - 1) + '</span>';
+          return;
+        }
+
+        var off = isRow ? (ri * n + cj) : (cj * m + ri);
+        var addr = base + off * L;
+
+        var f1, f2;
+        if (isRow) {
+          f1 = oneBased ? '(' + i + '−1) × ' + n + ' + (' + j + '−1)' : i + ' × ' + n + ' + ' + j;
+          f2 = ri + ' × ' + n + ' + ' + cj;
+        } else {
+          f1 = oneBased ? '(' + j + '−1) × ' + m + ' + (' + i + '−1)' : j + ' × ' + m + ' + ' + i;
+          f2 = cj + ' × ' + m + ' + ' + ri;
+        }
+
+        g('out').innerHTML =
+          '① 先统一成 0 基：i = ' + ri + '，j = ' + cj + '<br>' +
+          '② offset = ' + f1 + ' = ' + f2 + ' = <b style="color:#ffb454">' + off + '</b>（前面有 ' + off + ' 个元素）<br>' +
+          '③ 地址 = ' + base + ' + ' + off + ' × ' + L + ' = <b style="color:#38d9d0;font-size:15px">' + addr + '</b>';
+      }
+      Array.prototype.forEach.call(calcWrap.querySelectorAll('input, select'), function (el) {
+        el.addEventListener('input', run);
+        el.addEventListener('change', run);
+      });
+      run();
+    })();
+    doc.appendChild(c2b);
 
     const c3 = D.card({ title: '动画 ②：对称矩阵压缩（只存下三角）', icon: '🔻', badge: '经典公式' });
     const b3 = c3.querySelector('.body');
