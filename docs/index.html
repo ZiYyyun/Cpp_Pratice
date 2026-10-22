@@ -297,6 +297,15 @@ details.ans>summary::-webkit-details-marker{display:none}
 details.ans>summary:hover{background:rgba(56,217,208,.08)}
 details.ans[open]>summary{margin-bottom:8px}
 
+.quizsec>h2{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.qbody{margin-top:6px}
+.qitem{display:flex;gap:12px;padding:14px 0;border-top:1px dashed var(--line)}
+.qitem:first-child{border-top:none}
+.qno{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:#0c1322;border:1.5px solid rgba(139,124,246,.5);
+  color:#c4b5fd;font-family:var(--mono);font-size:12px;display:grid;place-items:center;margin-top:2px}
+.qmain{flex:1;min-width:0}
+.qmain .ex{margin:0;border:none;background:transparent;padding:0}
+.qmain .ex .q{margin:0 0 8px}
 .donebar{display:flex;align-items:center;gap:12px;margin-top:26px;padding-top:18px;border-top:1px dashed var(--line);flex-wrap:wrap}
 .donebtn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:11px;cursor:pointer;font-size:14px;
   border:1px solid var(--line2);background:#16233c;color:#d6e3f7;transition:.18s}
@@ -517,6 +526,23 @@ function answer(codes) {
   });
   h += '</div>';
   return h;
+}
+
+/* ------------------- 测试题库：各章用 D.quiz() 在模块加载时注册 ------------------- */
+const QUIZ = {};
+function quiz(topicId, items) {
+  if (!QUIZ[topicId]) QUIZ[topicId] = [];
+  (items || []).forEach(function (it) { if (it) QUIZ[topicId].push(it); });
+}
+function quizTopics() {
+  return sorted().filter(function (t) { return !t.special; })
+    .map(function (t) { return { topic: t, items: QUIZ[t.id] || [] }; })
+    .filter(function (g) { return g.items.length > 0; });
+}
+function quizTotal() {
+  let n = 0;
+  quizTopics().forEach(function (g) { n += g.items.length; });
+  return n;
 }
 
 /* ------------------- 资料来源（教材 / 官方文档 / 标准库源码） ------------------- */
@@ -875,7 +901,10 @@ document.addEventListener('keydown', function (e) {
 
 /* ------------------------- 主题注册与路由 ------------------------- */
 function register(t) { topics.push(t); }
-function sorted() { return topics.slice().sort((a, b) => (a.order || 500) - (b.order || 500)); }
+function sorted() {
+  const ord = function (t) { return (t.order == null) ? 500 : t.order; };
+  return topics.slice().sort(function (a, b) { return ord(a) - ord(b); });
+}
 function progressList() {
   try { return JSON.parse(localStorage.getItem('dsv-done') || '[]'); } catch (e) { return []; }
 }
@@ -996,7 +1025,7 @@ function bindChrome() {
 
 Object.assign(DSV, {
   register, esc, el, h, html, svgEl, hl, code, codeTabs, codeSteps, applyLang, currentLang, normLang, LANG_LABEL,
-  card, note, mini, table, ex, answer, answerFor, sources,
+  card, note, mini, table, ex, answer, answerFor, sources, quiz, quizTopics, quizTotal,
   lab, reconcile, ghost, fxOf, ptr, placePtr, hidePtr, liveLabs, sorted, topics, route
 });
 const boot = function () { stampData(); buildNav(); bindChrome(); route(); };
@@ -1047,6 +1076,10 @@ D.register({
         'C++：<code class="inl">cl /std:c++20 /EHsc /utf-8 x.cpp</code> 或 <code class="inl">g++ -std=c++20 -Wall x.cpp</code>；' +
         'Rust：<code class="inl">rustc --edition 2021 x.rs</code>。' +
         '<b>MSVC 一定要加 <code class="inl">/utf-8</code></b> —— 源码是 UTF-8，不加的话代码页 936 会把中文注释读坏，直接报 C1075。') +
+      D.note('tip', '讲解和测试是分开的',
+        '左侧每一章只负责<b>讲清楚</b>（概念 → 动画 → 实现要点 → 分步代码），' +
+        '所有动手练都集中在 <a href="#/quiz"><b>📝 测试中心</b></a> 里，可以按章节筛选、一键展开全部答案。<br>' +
+        '建议：看完一章的讲解，立刻去测试中心默写那一章的题，<b>不要边看答案边写</b>。') +
       D.note('warn', '为什么这些代码写得这么"笨"？',
         '因为目标是<b>让你能自己默写出来</b>，不是写一个能上生产的库。<br>' +
         '所以这里<b>刻意不用</b> template、智能指针、STL 容器、异常、lambda —— 这些在真实项目里当然要用，' +
@@ -1212,6 +1245,20 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('array', [
+  D.ex('合上页面，只给你签名 <code class="inl">insert(index, v)</code>，默写完整实现（越界检查 → 扩容 → 倒着搬 → 写入 → size++）。' +
+        '写完对照上面<b>第 5 步</b>，检查三件事：① 搬移方向对不对 ② 有没有"先扩容再搬" ③ size 最后加没加。'),
+  D.ex('实现 <code class="inl">remove_all(v)</code>：删除数组里所有等于 v 的元素，要求 <b>O(n)</b> 时间、<b>O(1)</b> 额外空间' +
+        '（不允许新建数组，也不允许反复 remove 造成 O(n²)）。提示：双指针——读指针扫全部，写指针只在"该保留"时前进。',
+        D.answerFor('array', 1)),
+  D.ex('如果扩容改成"每次 +4"，push 1000 个元素总共要搬多少次？改成"每次 ×2"呢？请用计算说明为什么后者是均摊 O(1)。',
+        '<p>每次 +4：第 k 次扩容搬 4k 个元素，搬完能免费写 4 个，所以在第 k 次扩容前要 push 4k 次。' +
+        '总搬移量 ≈ 4(1+2+…+k) ≈ 2k²，而总元素数 n ≈ 4k²/…——总之是 <b>O(n²)</b>。</p>' +
+        '<p>每次 ×2：第 k 次扩容搬 2^k 个，扩容前刚好 push 了 2^k 次。总搬移量 ≈ 2^1+2^2+…+2^k ≈ 2^(k+1) ≈ 2n，' +
+        '摊到 n 次 push 上就是常数 → <b>均摊 O(1)</b>。</p>')
+]);
+
 
 function P(arr, size, cap, o) {
   const s = { arr: arr.slice(), size: size, cap: cap, hl: [], ok: [], bad: [], dim: [], op: '', tag: '' };
@@ -1385,19 +1432,11 @@ D.register({
     doc.appendChild(c4);
 
     /* ---- 练习 ---- */
-    const c5 = D.card({ title: '动手练', icon: '✎', badge: '不做等于没学' });
-    D.html(c5.querySelector('.body'),
-      D.ex('合上页面，只给你签名 <code class="inl">insert(index, v)</code>，默写完整实现（越界检查 → 扩容 → 倒着搬 → 写入 → size++）。' +
-        '写完对照上面<b>第 5 步</b>，检查三件事：① 搬移方向对不对 ② 有没有"先扩容再搬" ③ size 最后加没加。') +
-      D.ex('实现 <code class="inl">remove_all(v)</code>：删除数组里所有等于 v 的元素，要求 <b>O(n)</b> 时间、<b>O(1)</b> 额外空间' +
-        '（不允许新建数组，也不允许反复 remove 造成 O(n²)）。提示：双指针——读指针扫全部，写指针只在"该保留"时前进。',
-        D.answerFor('array', 1)) +
-      D.ex('如果扩容改成"每次 +4"，push 1000 个元素总共要搬多少次？改成"每次 ×2"呢？请用计算说明为什么后者是均摊 O(1)。',
-        '<p>每次 +4：第 k 次扩容搬 4k 个元素，搬完能免费写 4 个，所以在第 k 次扩容前要 push 4k 次。' +
-        '总搬移量 ≈ 4(1+2+…+k) ≈ 2k²，而总元素数 n ≈ 4k²/…——总之是 <b>O(n²)</b>。</p>' +
-        '<p>每次 ×2：第 k 次扩容搬 2^k 个，扩容前刚好 push 了 2^k 次。总搬移量 ≈ 2^1+2^2+…+2^k ≈ 2^(k+1) ≈ 2n，' +
-        '摊到 n 次 push 上就是常数 → <b>均摊 O(1)</b>。</p>'));
-    doc.appendChild(c5);
+    const c5 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c5.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c5);
   }
 });
 })();
@@ -1410,6 +1449,23 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('string', [
+  D.ex('合上页面，默写 bfMatch(主串, 模式串)：返回首次出现的下标，找不到返回 -1。' +
+        '写完对照上面<b>第 4 步</b>，重点检查失配时 i 是怎么退的（i = i - j + 1）以及 j 有没有归零。',
+        D.answerFor('string', 1)),
+  D.ex('默写 getNext(模式串, next[])。写完用 "ababaa" 验算，正确结果应该是 [-1, 0, 0, 1, 2, 3]。' +
+        '算不对就回到「next 数组到底在算什么」那张表重新推一遍。',
+        D.answerFor('string', 2)),
+  D.ex('为什么 next[0] 要设成 -1？如果设成 0 会出什么问题？（提示：想想模式串第一个字符就失配时，j 应该怎么变，i 又该怎么变。）',
+        '<p>next[0] = -1 是一个<b>信号</b>：它表示"模式串的第一个字符就和主串失配了，整个模式串要往右挪一格，也就是主串的 i 也得前进"。</p>' +
+        '<p>在 KMP 的循环里通常写成：<br>' +
+        'if (j == -1 || T[i] == P[j]) { i++; j++; } else { j = next[j]; }<br>' +
+        '当 j = -1 时条件成立，执行 i++ 和 j++，j 回到 0 —— 正好完成"模式串整体右移一格"这个动作。</p>' +
+        '<p>如果 next[0] = 0，那么 j 在 0 失配后还是 0，j = next[0] = 0 会变成死循环，永远跳不出去。' +
+        '所以这个 -1 不是随便定的，是为了让"整体右移"和"普通失配跳转"能用同一行代码处理。</p>')
+]);
+
 
 const TEXT = 'ababcabcacbab';
 const PAT = 'abcac';
@@ -1795,22 +1851,11 @@ D.register({
         '如果 KMP 死活不匹配，九成是 next 数组的初值或者 while 里 j 的更新写错了。'));
     doc.appendChild(c5);
 
-    const c6 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c6.querySelector('.body'),
-      D.ex('合上页面，默写 bfMatch(主串, 模式串)：返回首次出现的下标，找不到返回 -1。' +
-        '写完对照上面<b>第 4 步</b>，重点检查失配时 i 是怎么退的（i = i - j + 1）以及 j 有没有归零。',
-        D.answerFor('string', 1)) +
-      D.ex('默写 getNext(模式串, next[])。写完用 "ababaa" 验算，正确结果应该是 [-1, 0, 0, 1, 2, 3]。' +
-        '算不对就回到「next 数组到底在算什么」那张表重新推一遍。',
-        D.answerFor('string', 2)) +
-      D.ex('为什么 next[0] 要设成 -1？如果设成 0 会出什么问题？（提示：想想模式串第一个字符就失配时，j 应该怎么变，i 又该怎么变。）',
-        '<p>next[0] = -1 是一个<b>信号</b>：它表示"模式串的第一个字符就和主串失配了，整个模式串要往右挪一格，也就是主串的 i 也得前进"。</p>' +
-        '<p>在 KMP 的循环里通常写成：<br>' +
-        'if (j == -1 || T[i] == P[j]) { i++; j++; } else { j = next[j]; }<br>' +
-        '当 j = -1 时条件成立，执行 i++ 和 j++，j 回到 0 —— 正好完成"模式串整体右移一格"这个动作。</p>' +
-        '<p>如果 next[0] = 0，那么 j 在 0 失配后还是 0，j = next[0] = 0 会变成死循环，永远跳不出去。' +
-        '所以这个 -1 不是随便定的，是为了让"整体右移"和"普通失配跳转"能用同一行代码处理。</p>'));
-    doc.appendChild(c6);
+    const c6 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c6.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c6);
   }
 });
 })();
@@ -1823,6 +1868,18 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('linkedlist', [
+  D.ex('合上页面，默写 <code class="inl">reverse()</code>。写完对照上面<b>第 5 步</b>，检查四件事：' +
+        '① 循环开始前 prev 是不是 NULL / nullptr / None ② 顺序是不是严格"备份 → 掉头 → prev 前移 → cur 前移" ' +
+        '③ 返回的是 prev 而不是 cur ④ 空链表会不会崩。'),
+  D.ex('删除链表中倒数第 k 个结点，要求 <b>只遍历一趟</b>。提示：还是双指针——快指针先走 k 步，然后两个一起走，' +
+        '快指针到尾时慢指针正好停在倒数第 k+1 个。<b>另外想想：这个写法为什么在安全 Rust 里写不出来？</b>',
+        D.answerFor('linkedlist', 1)),
+  D.ex('给定两个<b>有序</b>链表，合并成一个有序链表。（提示：哑结点 + 每次比较两个头，谁小接谁；最后把没走完的那条链整段接上。）',
+        D.answerFor('linkedlist', 2))
+]);
+
 
 /* ---------- 动画数据 ---------- */
 const V1 = { n1: 1, n2: 2, n3: 3, n9: 9 };
@@ -2029,17 +2086,11 @@ D.register({
         '"空链表"三种情况各跑一遍。链表题 90% 的 bug 都出在这两个边界上。'));
     doc.appendChild(c5);
 
-    const c6 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c6.querySelector('.body'),
-      D.ex('合上页面，默写 <code class="inl">reverse()</code>。写完对照上面<b>第 5 步</b>，检查四件事：' +
-        '① 循环开始前 prev 是不是 NULL / nullptr / None ② 顺序是不是严格"备份 → 掉头 → prev 前移 → cur 前移" ' +
-        '③ 返回的是 prev 而不是 cur ④ 空链表会不会崩。') +
-      D.ex('删除链表中倒数第 k 个结点，要求 <b>只遍历一趟</b>。提示：还是双指针——快指针先走 k 步，然后两个一起走，' +
-        '快指针到尾时慢指针正好停在倒数第 k+1 个。<b>另外想想：这个写法为什么在安全 Rust 里写不出来？</b>',
-        D.answerFor('linkedlist', 1)) +
-      D.ex('给定两个<b>有序</b>链表，合并成一个有序链表。（提示：哑结点 + 每次比较两个头，谁小接谁；最后把没走完的那条链整段接上。）',
-        D.answerFor('linkedlist', 2)));
-    doc.appendChild(c6);
+    const c6 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c6.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c6);
   }
 });
 })();
@@ -2052,6 +2103,18 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('stack', [
+  D.ex('合上页面，默写 <code class="inl">is_balanced(const char *s)</code>。写完对照上面<b>第 6 步</b>，用这 5 个用例验：' +
+        '<code class="inl">""</code>（空串）、<code class="inl">"("</code>（只有左）、<code class="inl">")"</code>（只有右）、' +
+        '<code class="inl">"()"</code>、<code class="inl">"([)]"</code>。' +
+        '重点检查两条分支：<b>栈空时出栈</b>、<b>扫描完栈非空</b>。'),
+  D.ex('用两个栈实现一个队列（push / pop）。提示：一个"进栈"、一个"出栈"；只有当出栈为空时，才把进栈里的元素<b>整体倒过去</b>。想一想为什么这是均摊 O(1)。',
+        D.answerFor('stack', 1)),
+  D.ex('实现 <code class="inl">MinStack</code>，要求 push / pop / top / min 全部 O(1)。提示：空间换时间，用第二个栈记录"到当前为止的最小值"，并保证两个栈同步进出。',
+        D.answerFor('stack', 2))
+]);
+
 
 /* ---------- 动画 1：push / pop ---------- */
 function S1(items, o) { return Object.assign({ items: items.slice(), act: '', msg: '' }, o || {}); }
@@ -2243,17 +2306,11 @@ D.register({
         '② <b>空栈 peek</b>：同上。③ <b>MinStack 的两个栈必须同步进出</b>，pop 时忘记 pop 辅助栈，多测几次就会出错。'));
     doc.appendChild(c5);
 
-    const c6 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c6.querySelector('.body'),
-      D.ex('合上页面，默写 <code class="inl">is_balanced(const char *s)</code>。写完对照上面<b>第 6 步</b>，用这 5 个用例验：' +
-        '<code class="inl">""</code>（空串）、<code class="inl">"("</code>（只有左）、<code class="inl">")"</code>（只有右）、' +
-        '<code class="inl">"()"</code>、<code class="inl">"([)]"</code>。' +
-        '重点检查两条分支：<b>栈空时出栈</b>、<b>扫描完栈非空</b>。') +
-      D.ex('用两个栈实现一个队列（push / pop）。提示：一个"进栈"、一个"出栈"；只有当出栈为空时，才把进栈里的元素<b>整体倒过去</b>。想一想为什么这是均摊 O(1)。',
-        D.answerFor('stack', 1)) +
-      D.ex('实现 <code class="inl">MinStack</code>，要求 push / pop / top / min 全部 O(1)。提示：空间换时间，用第二个栈记录"到当前为止的最小值"，并保证两个栈同步进出。',
-        D.answerFor('stack', 2)));
-    doc.appendChild(c6);
+    const c6 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c6.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c6);
   }
 });
 })();
@@ -2266,6 +2323,15 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('queue', [
+  D.ex('合上页面，默写循环队列。写完对照上面<b>第 2~5 步</b>，逐个确认：① 内部为什么多开一格 ② 判空 / 判满公式 ③ size 为什么要 <code class="inl">(tail - head + cap) % cap</code> ④ 出队有没有把引用置空。'),
+  D.ex('用两个队列实现一个栈（push / pop）。提示：每次 pop 时，把当前队列的前 n-1 个元素搬到另一个空队列，剩下的那个就是栈顶；然后用 O(1) 交换两个队列的角色。',
+              D.answerFor('queue', 1)),
+  D.ex('改写循环队列，<b>不再牺牲那一格</b>：额外维护一个 <code class="inl">size</code> 字段，用 <code class="inl">size == cap</code> 判满、<code class="inl">size == 0</code> 判空。说说这两种方案各自的取舍。',
+              D.answerFor('queue', 2))
+]);
+
 
 /* ---------- 动画数据 ---------- */
 const CAP = 5;
@@ -2431,14 +2497,11 @@ D.register({
         '如果顺序错乱，八成是取模写漏了。'));
     doc.appendChild(c5);
 
-    const c6 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c6.querySelector('.body'),
-      D.ex('合上页面，默写循环队列。写完对照上面<b>第 2~5 步</b>，逐个确认：① 内部为什么多开一格 ② 判空 / 判满公式 ③ size 为什么要 <code class="inl">(tail - head + cap) % cap</code> ④ 出队有没有把引用置空。') +
-            D.ex('用两个队列实现一个栈（push / pop）。提示：每次 pop 时，把当前队列的前 n-1 个元素搬到另一个空队列，剩下的那个就是栈顶；然后用 O(1) 交换两个队列的角色。',
-              D.answerFor('queue', 1)) +
-            D.ex('改写循环队列，<b>不再牺牲那一格</b>：额外维护一个 <code class="inl">size</code> 字段，用 <code class="inl">size == cap</code> 判满、<code class="inl">size == 0</code> 判空。说说这两种方案各自的取舍。',
-              D.answerFor('queue', 2)));
-    doc.appendChild(c6);
+    const c6 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c6.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c6);
   }
 });
 })();
@@ -2451,6 +2514,16 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('matrix', [
+  D.ex('写出 <code class="inl">symmetricIndex(i, j)</code>：把 n 阶对称矩阵的 (i,j) 映射到一维数组下标（下三角压缩）。' +
+        '写完用 4 阶矩阵验算：(0,0)→0、(1,0)→1、(1,1)→2、(2,0)→3、(3,3)→9，并说明 n 阶对称矩阵一共要多少个存储单元。',
+        D.answerFor('matrix', 1)),
+  D.ex('写一个<b>普通转置</b>（不用 pos 数组那一套）：对转置结果的每一行，回去原表扫一遍找出该行需要的元素。' +
+        '写完后和快速转置对比复杂度，说说为什么它慢。',
+        D.answerFor('matrix', 2))
+]);
+
 
 /* ---------- Lab 1：二维数组的行主序地址计算 ---------- */
 const ROWS = 3, COLS = 4, BASE = 1000, SZ = 4;
@@ -2806,15 +2879,11 @@ D.register({
         '快速转置那部分，检查转置两次能不能还原成原矩阵。这两个检查能抓住绝大部分下标错误。'));
     doc.appendChild(c6);
 
-    const c7 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c7.querySelector('.body'),
-      D.ex('写出 <code class="inl">symmetricIndex(i, j)</code>：把 n 阶对称矩阵的 (i,j) 映射到一维数组下标（下三角压缩）。' +
-        '写完用 4 阶矩阵验算：(0,0)→0、(1,0)→1、(1,1)→2、(2,0)→3、(3,3)→9，并说明 n 阶对称矩阵一共要多少个存储单元。',
-        D.answerFor('matrix', 1)) +
-      D.ex('写一个<b>普通转置</b>（不用 pos 数组那一套）：对转置结果的每一行，回去原表扫一遍找出该行需要的元素。' +
-        '写完后和快速转置对比复杂度，说说为什么它慢。',
-        D.answerFor('matrix', 2)));
-    doc.appendChild(c7);
+    const c7 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c7.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c7);
   }
 });
 })();
@@ -2827,6 +2896,16 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('genlist', [
+  D.ex('默写求深度的递归函数。写完用这四个例子验算：()、(a,(b,c))、(a,(b,(c,d)))、((),(()))。' +
+        '提示：先想清楚"空表返回几、原子返回几、表返回几"，这三句话就是整个函数。',
+        D.answerFor('genlist', 1)),
+  D.ex('手算广义表 <b>(a, (b, (c, d)))</b> 的长度和深度，并一步步写清楚推导过程。' +
+        '（提示：长度只看最外层；深度要一层层往里数括号。）',
+        D.answerFor('genlist', 2))
+]);
+
 
 const POS = {
   root: [310, 44],
@@ -3001,15 +3080,11 @@ D.register({
         '再手动把最外层换成 (a,(b,(c,d)))，看深度会不会变成 3。'));
     doc.appendChild(c5);
 
-    const c6 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c6.querySelector('.body'),
-      D.ex('默写求深度的递归函数。写完用这四个例子验算：()、(a,(b,c))、(a,(b,(c,d)))、((),(()))。' +
-        '提示：先想清楚"空表返回几、原子返回几、表返回几"，这三句话就是整个函数。',
-        D.answerFor('genlist', 1)) +
-      D.ex('手算广义表 <b>(a, (b, (c, d)))</b> 的长度和深度，并一步步写清楚推导过程。' +
-        '（提示：长度只看最外层；深度要一层层往里数括号。）',
-        D.answerFor('genlist', 2)));
-    doc.appendChild(c6);
+    const c6 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c6.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c6);
   }
 });
 })();
@@ -3022,6 +3097,16 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('tree', [
+  D.ex('默写"求叶子节点个数"的递归函数。提示：空树返回 0；左右都空（叶子）返回 1；否则返回左子树叶子数 + 右子树叶子数。' +
+        '写完用动画里那棵树验算，答案应该是 4（D、E、F、G）。',
+        D.answerFor('tree', 1)),
+  D.ex('默写"交换每个节点的左右孩子"。想一想：用前序、中序还是后序最方便？为什么？' +
+        '再想想这题和"判断两棵树是否互为镜像"有什么关系。',
+        D.answerFor('tree', 2))
+]);
+
 
 /* 固定的一棵满二叉树：A(B(D,E), C(F,G))，前序扩展序列 ABD##E##CF##G## */
 const NODES = [
@@ -3279,15 +3364,11 @@ D.register({
         '优点是可以唯一确定一棵二叉树。'));
     doc.appendChild(c6);
 
-    const c7 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c7.querySelector('.body'),
-      D.ex('默写"求叶子节点个数"的递归函数。提示：空树返回 0；左右都空（叶子）返回 1；否则返回左子树叶子数 + 右子树叶子数。' +
-        '写完用动画里那棵树验算，答案应该是 4（D、E、F、G）。',
-        D.answerFor('tree', 1)) +
-      D.ex('默写"交换每个节点的左右孩子"。想一想：用前序、中序还是后序最方便？为什么？' +
-        '再想想这题和"判断两棵树是否互为镜像"有什么关系。',
-        D.answerFor('tree', 2)));
-    doc.appendChild(c7);
+    const c7 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c7.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c7);
   }
 });
 })();
@@ -3300,6 +3381,17 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('bst', [
+  D.ex('合上页面，默写 <code class="inl">remove(node, val)</code> 的递归版本。写完对照上面<b>第 5 步</b>，用四种情况测：' +
+              '① 删不存在的值 ② 删叶子 ③ 删只有一个孩子的 ④ 删有两个孩子的。特别确认：情况 3 里"复制后继的值"之后，' +
+              '还要<b>去右子树里把原来的后继删掉</b>。'),
+  D.ex('实现 <code class="inl">is_valid_bst(root)</code>：判断一棵二叉树是不是二叉搜索树。<b>陷阱：不能只比较父子！</b>请用 [10,5,15,3,12] 这棵树验证你的实现。',
+              D.answerFor('bst', 1)),
+  D.ex('把一个<b>升序数组</b>转换成一棵高度最小的 BST。提示：有序数组的中间元素就是根，左右两半各自递归。',
+              D.answerFor('bst', 2))
+]);
+
 const W = 760, H = 360, RH = 19, DY = 72;
 
 function posOf(path) {
@@ -3631,16 +3723,11 @@ D.register({
         })));
     doc.appendChild(c6);
 
-    const c7 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c7.querySelector('.body'),
-      D.ex('合上页面，默写 <code class="inl">remove(node, val)</code> 的递归版本。写完对照上面<b>第 5 步</b>，用四种情况测：' +
-              '① 删不存在的值 ② 删叶子 ③ 删只有一个孩子的 ④ 删有两个孩子的。特别确认：情况 3 里"复制后继的值"之后，' +
-              '还要<b>去右子树里把原来的后继删掉</b>。') +
-            D.ex('实现 <code class="inl">is_valid_bst(root)</code>：判断一棵二叉树是不是二叉搜索树。<b>陷阱：不能只比较父子！</b>请用 [10,5,15,3,12] 这棵树验证你的实现。',
-              D.answerFor('bst', 1)) +
-            D.ex('把一个<b>升序数组</b>转换成一棵高度最小的 BST。提示：有序数组的中间元素就是根，左右两半各自递归。',
-              D.answerFor('bst', 2)));
-    doc.appendChild(c7);
+    const c7 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c7.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c7);
   }
 });
 })();
@@ -3654,6 +3741,17 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('heap', [
+  D.ex('合上页面，默写 <code class="inl">sift_down(i)</code>。写完对照上面<b>第 4 步</b>，自查三件事：' +
+              '① 是不是先假设"当前位置最小" ② 是不是分别和左右孩子比了两次 ③ 循环结束条件是什么。' +
+              '然后再想一遍：为什么必须和<b>更小的那个</b>孩子交换？'),
+  D.ex('设计一个类，支持不断往数据流里加数字，并随时以 O(1) 返回当前中位数。<br>提示：大顶堆存较小的一半，小顶堆存较大的一半，保持两边数量差不超过 1。',
+              D.answerFor('heap', 1)),
+  D.ex('实现<b>原地</b>堆排序（升序）。提示：先建大顶堆，然后把堆顶和未排序区间的末尾交换、size 减 1、再对堆顶下沉；重复 n-1 次。',
+              D.answerFor('heap', 2))
+]);
+
 const W = 700, RH = 18, DY = 66;
 
 function posIdx(i) {
@@ -3908,16 +4006,11 @@ D.register({
         '如果中间出现逆序，多半是 siftDown 里"挑更小的孩子"写错了，或者边界判断漏了。'));
     doc.appendChild(c6);
 
-    const c7 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c7.querySelector('.body'),
-      D.ex('合上页面，默写 <code class="inl">sift_down(i)</code>。写完对照上面<b>第 4 步</b>，自查三件事：' +
-              '① 是不是先假设"当前位置最小" ② 是不是分别和左右孩子比了两次 ③ 循环结束条件是什么。' +
-              '然后再想一遍：为什么必须和<b>更小的那个</b>孩子交换？') +
-            D.ex('设计一个类，支持不断往数据流里加数字，并随时以 O(1) 返回当前中位数。<br>提示：大顶堆存较小的一半，小顶堆存较大的一半，保持两边数量差不超过 1。',
-              D.answerFor('heap', 1)) +
-            D.ex('实现<b>原地</b>堆排序（升序）。提示：先建大顶堆，然后把堆顶和未排序区间的末尾交换、size 减 1、再对堆顶下沉；重复 n-1 次。',
-              D.answerFor('heap', 2)));
-    doc.appendChild(c7);
+    const c7 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c7.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c7);
   }
 });
 })();
@@ -3930,6 +4023,16 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('graph', [
+  D.ex('合上页面，默写 BFS，并输出"从起点到每个顶点的最短距离"。写完对照上面<b>第 4 步</b>，确认：' +
+              '① <code class="inl">visited</code> 是在<b>入队时</b>标记还是出队时标记 ② 为什么 BFS 第一次到达某点就是最短路 ③ 图不连通时会怎样。'),
+  D.ex('统计一张无向图有多少个连通分量（"岛屿数量"的抽象版）。提示：外层遍历每个顶点，遇到没访问过的就启动一次 DFS，计数器 +1。',
+              D.answerFor('graph', 1)),
+  D.ex('给出一堆课程和它们的先修关系，判断能不能修完所有课。提示：这等价于"判断有向图有没有环"，用拓扑排序 —— 能排出的序列长度等于课程数就没环。',
+              D.answerFor('graph', 2))
+]);
+
 
 const POS = { A: [70, 90], B: [230, 40], C: [230, 165], D: [410, 90], E: [410, 205], F: [580, 130] };
 const EDGES = [['A', 'B'], ['A', 'C'], ['B', 'D'], ['C', 'D'], ['C', 'E'], ['D', 'F'], ['E', 'F']];
@@ -4175,15 +4278,11 @@ D.register({
         '要遍历整张图，必须对<b>每个未访问顶点</b>都启动一次搜索。'));
     doc.appendChild(c6);
 
-    const c7 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c7.querySelector('.body'),
-      D.ex('合上页面，默写 BFS，并输出"从起点到每个顶点的最短距离"。写完对照上面<b>第 4 步</b>，确认：' +
-              '① <code class="inl">visited</code> 是在<b>入队时</b>标记还是出队时标记 ② 为什么 BFS 第一次到达某点就是最短路 ③ 图不连通时会怎样。') +
-            D.ex('统计一张无向图有多少个连通分量（"岛屿数量"的抽象版）。提示：外层遍历每个顶点，遇到没访问过的就启动一次 DFS，计数器 +1。',
-              D.answerFor('graph', 1)) +
-            D.ex('给出一堆课程和它们的先修关系，判断能不能修完所有课。提示：这等价于"判断有向图有没有环"，用拓扑排序 —— 能排出的序列长度等于课程数就没环。',
-              D.answerFor('graph', 2)));
-    doc.appendChild(c7);
+    const c7 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c7.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c7);
   }
 });
 })();
@@ -4197,6 +4296,15 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('search', [
+  D.ex('默写折半查找的循环版本。写完回答：n = 11 的有序表最多需要比较几次？（提示：画判定树数层数。）',
+        D.answerFor('search', 1)),
+  D.ex('写一个函数，输入一个有序数组，算出折半查找的 ASL。提示：按判定树分层统计——每层有多少个节点 × 层号，' +
+        '累加后除以 n。写完用 n = 9 验算，答案应该是 25/9 ≈ 2.78。',
+        D.answerFor('search', 2))
+]);
+
 
 const ARR = [8, 14, 23, 37, 45, 51, 68, 79, 93];
 
@@ -4424,14 +4532,11 @@ D.register({
         '写成 <code class="inl">= mid</code> 会死循环。'));
     doc.appendChild(c5);
 
-    const c6 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c6.querySelector('.body'),
-      D.ex('默写折半查找的循环版本。写完回答：n = 11 的有序表最多需要比较几次？（提示：画判定树数层数。）',
-        D.answerFor('search', 1)) +
-      D.ex('写一个函数，输入一个有序数组，算出折半查找的 ASL。提示：按判定树分层统计——每层有多少个节点 × 层号，' +
-        '累加后除以 n。写完用 n = 9 验算，答案应该是 25/9 ≈ 2.78。',
-        D.answerFor('search', 2)));
-    doc.appendChild(c6);
+    const c6 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c6.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c6);
   }
 });
 })();
@@ -4444,6 +4549,24 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('hash', [
+  D.ex('合上页面，默写拉链法哈希表：桶数组 + 链表 + 负载因子扩容。写完对照上面<b>第 3~6 步</b>，确认三件事：' +
+              '① put 里"已存在就更新、不存在才插入" ② rehash 时每个 key 都<b>重新计算下标</b>（不是把整条桶搬过去）③ 扩容前后 size 不变。'),
+  D.ex('手写一个字符串哈希函数，把任意字符串压成 32 位无符号整数。要求同一个字符串每次得到同一个值，且分布尽量均匀。',
+              D.answerFor('hash', 1)),
+  D.ex('哈希表的 key 为什么必须"不可变"？如果用一个能被修改的对象当 key 会发生什么？<code class="inl">std::unordered_map</code> 和 Rust 的 <code class="inl">HashMap</code> 分别对 key 提了什么要求？',
+              '<p>哈希表的全部正确性都建立在一个不变量上：<b>同一个 key，每次算出的哈希值必须相同</b>。</p>' +
+              '<p>如果 key 存进去之后被改了，它的哈希值就变了 —— 再去查它时会被导航到<b>错误的桶</b>，' +
+              '于是既查不到、也删不掉，那条记录变成永远回收不了的"幽灵数据"。</p>' +
+              '<p>所以：<b>std::unordered_map</b> 要求 key 满足 <code class="inl">Hash</code> 与 <code class="inl">Equal</code> 两个概念，' +
+              '并且规定必须能用 <code class="inl">const K</code> 求出哈希 —— 实务上就是别拿会被修改的对象当 key；' +
+              '<b>Rust 的 HashMap</b> 更硬：要求 <code class="inl">K: Hash + Eq</code>，而 <code class="inl">Hash</code> 只对 <code class="inl">&self</code> 实现，' +
+              '配合所有权系统基本堵死了"边用边改"。这也是 <code class="inl">String</code> 能当 key、而可变引用不能的原因。</p>' +
+              '<p>还有一条铁律：<b>两个对象相等，则哈希值必须相等</b>；反之哈希值相等，对象不一定相等（这就是冲突）。' +
+              '在 C++ 里自己写 <code class="inl">operator==</code> 和 <code class="inl">std::hash</code> 特化时，必须同时满足这两条。</p>')
+]);
+
 
 /* ---------- 动画数据 ---------- */
 function E() { return [[], [], [], [], []]; }
@@ -4624,23 +4747,11 @@ D.register({
         '③ <b>resize 里对 size 的处理</b>：如果 put 里会 size++，resize 前要先把 size 归零，否则数字会翻倍。'));
     doc.appendChild(c5);
 
-    const c6 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c6.querySelector('.body'),
-      D.ex('合上页面，默写拉链法哈希表：桶数组 + 链表 + 负载因子扩容。写完对照上面<b>第 3~6 步</b>，确认三件事：' +
-              '① put 里"已存在就更新、不存在才插入" ② rehash 时每个 key 都<b>重新计算下标</b>（不是把整条桶搬过去）③ 扩容前后 size 不变。') +
-            D.ex('手写一个字符串哈希函数，把任意字符串压成 32 位无符号整数。要求同一个字符串每次得到同一个值，且分布尽量均匀。',
-              D.answerFor('hash', 1)) +
-            D.ex('哈希表的 key 为什么必须"不可变"？如果用一个能被修改的对象当 key 会发生什么？<code class="inl">std::unordered_map</code> 和 Rust 的 <code class="inl">HashMap</code> 分别对 key 提了什么要求？',
-              '<p>哈希表的全部正确性都建立在一个不变量上：<b>同一个 key，每次算出的哈希值必须相同</b>。</p>' +
-              '<p>如果 key 存进去之后被改了，它的哈希值就变了 —— 再去查它时会被导航到<b>错误的桶</b>，' +
-              '于是既查不到、也删不掉，那条记录变成永远回收不了的"幽灵数据"。</p>' +
-              '<p>所以：<b>std::unordered_map</b> 要求 key 满足 <code class="inl">Hash</code> 与 <code class="inl">Equal</code> 两个概念，' +
-              '并且规定必须能用 <code class="inl">const K</code> 求出哈希 —— 实务上就是别拿会被修改的对象当 key；' +
-              '<b>Rust 的 HashMap</b> 更硬：要求 <code class="inl">K: Hash + Eq</code>，而 <code class="inl">Hash</code> 只对 <code class="inl">&self</code> 实现，' +
-              '配合所有权系统基本堵死了"边用边改"。这也是 <code class="inl">String</code> 能当 key、而可变引用不能的原因。</p>' +
-              '<p>还有一条铁律：<b>两个对象相等，则哈希值必须相等</b>；反之哈希值相等，对象不一定相等（这就是冲突）。' +
-              '在 C++ 里自己写 <code class="inl">operator==</code> 和 <code class="inl">std::hash</code> 特化时，必须同时满足这两条。</p>'));
-    doc.appendChild(c6);
+    const c6 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c6.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c6);
   }
 });
 })();
@@ -4653,6 +4764,23 @@ D.register({
 (function () {
 'use strict';
 const D = window.DSV;
+/* ---------- 本章练习（集中在「测试中心」展示） ---------- */
+D.quiz('sort', [
+  D.ex('合上页面，默写 <code class="inl">partition(a, lo, hi)</code>。写完对照上面<b>第 4 步</b>，用 [3,1,2] 手动跑一遍：' +
+              '基准是 2，最终应该返回下标 2。然后自查四个坑：① 递归出口 <code class="inl">lo &gt;= hi</code> ② 循环边界 <code class="inl">j &lt; hi</code> ' +
+              '③ 最后有没有把基准换到 i 的位置 ④ 递归用 <code class="inl">p-1 / p+1</code>。'),
+  D.ex('用归并排序求数组的<b>逆序对</b>数量（前大后小的对数），要求 O(n log n)。提示：在 merge 的时候，如果取的是右半边的元素，' +
+              '说明左半边剩下的每一个都比它大 —— 一次就能加上好几个逆序对。',
+              D.answerFor('sort', 1)),
+  D.ex('为什么<b>选择排序</b>是不稳定的？举一个具体例子说明（提示：想想 <code class="inl">[5a, 5b, 2]</code> 会发生什么）。',
+              '<p>用 <code class="inl">[5a, 5b, 2]</code> 举例：<code class="inl">5a</code> 和 <code class="inl">5b</code> 值相等，但 5a 原本在 5b 前面。</p>' +
+              '<p>第 1 轮：找到最小值 2，把它和第一个位置的 <code class="inl">5a</code> 交换 → 数组变成 <code class="inl">[2, 5b, 5a]</code>。</p>' +
+              '<p>结果 <code class="inl">5b</code> 跑到了 <code class="inl">5a</code> 前面，原来的相对顺序被破坏 → <b>不稳定</b>。</p>' +
+              '<p>根本原因：选择排序是<b>远距离交换</b>，一次交换可能把某个元素跨过一堆与它相等的元素。' +
+              '而冒泡排序和插入排序只交换<b>相邻</b>元素，遇到相等就不动，所以它们是稳定的。' +
+              '归并排序合并时用 <code class="inl">&lt;=</code> 优先取左边，也是稳定的。</p>')
+]);
+
 
 /* ---------- 柱子渲染 ---------- */
 function makeBars(view, arr) {
@@ -4867,22 +4995,225 @@ D.register({
         '④ <b>递归用 p-1 和 p+1</b>，不要写成 p（否则死循环）。'));
     doc.appendChild(c6);
 
-    const c7 = D.card({ title: '动手练', icon: '✎', badge: '白纸手写' });
-    D.html(c7.querySelector('.body'),
-      D.ex('合上页面，默写 <code class="inl">partition(a, lo, hi)</code>。写完对照上面<b>第 4 步</b>，用 [3,1,2] 手动跑一遍：' +
-              '基准是 2，最终应该返回下标 2。然后自查四个坑：① 递归出口 <code class="inl">lo &gt;= hi</code> ② 循环边界 <code class="inl">j &lt; hi</code> ' +
-              '③ 最后有没有把基准换到 i 的位置 ④ 递归用 <code class="inl">p-1 / p+1</code>。') +
-            D.ex('用归并排序求数组的<b>逆序对</b>数量（前大后小的对数），要求 O(n log n)。提示：在 merge 的时候，如果取的是右半边的元素，' +
-              '说明左半边剩下的每一个都比它大 —— 一次就能加上好几个逆序对。',
-              D.answerFor('sort', 1)) +
-            D.ex('为什么<b>选择排序</b>是不稳定的？举一个具体例子说明（提示：想想 <code class="inl">[5a, 5b, 2]</code> 会发生什么）。',
-              '<p>用 <code class="inl">[5a, 5b, 2]</code> 举例：<code class="inl">5a</code> 和 <code class="inl">5b</code> 值相等，但 5a 原本在 5b 前面。</p>' +
-              '<p>第 1 轮：找到最小值 2，把它和第一个位置的 <code class="inl">5a</code> 交换 → 数组变成 <code class="inl">[2, 5b, 5a]</code>。</p>' +
-              '<p>结果 <code class="inl">5b</code> 跑到了 <code class="inl">5a</code> 前面，原来的相对顺序被破坏 → <b>不稳定</b>。</p>' +
-              '<p>根本原因：选择排序是<b>远距离交换</b>，一次交换可能把某个元素跨过一堆与它相等的元素。' +
-              '而冒泡排序和插入排序只交换<b>相邻</b>元素，遇到相等就不动，所以它们是稳定的。' +
-              '归并排序合并时用 <code class="inl">&lt;=</code> 优先取左边，也是稳定的。</p>'));
-    doc.appendChild(c7);
+    const c7 = D.card({ title: '动手练已移到「测试中心」', icon: '📝', badge: '讲解 / 测试分离' });
+        D.html(c7.querySelector('.body'),
+          '<p>本章的动手练已经集中到 <a href="#/quiz">📝 测试中心</a>，那里可以按章节筛选、一键展开全部答案。</p>' +
+          '<p>现在这一节只负责<b>讲清楚</b>：概念 → 动画 → 实现要点 → 分步代码。</p>');
+        doc.appendChild(c7);
+  }
+});
+})();
+
+</script>
+
+<script>
+/* ==================== 18-quiz.js ==================== */
+/* ============================ 测试中心 ============================ */
+(function () {
+'use strict';
+const D = window.DSV;
+
+/* ---------- KMP 的 next / nextval 计算（自测器用） ---------- */
+function calcNext(p) {
+  const n = p.length;
+  const next = new Array(n).fill(0);
+  if (n === 0) return next;
+  next[0] = -1;
+  let j = 0, k = -1;
+  while (j < n - 1) {
+    if (k === -1 || p[j] === p[k]) { j++; k++; next[j] = k; }
+    else { k = next[k]; }
+  }
+  return next;
+}
+function calcNextval(p) {
+  const n = p.length;
+  const nv = new Array(n).fill(0);
+  if (n === 0) return nv;
+  nv[0] = -1;
+  let j = 0, k = -1;
+  while (j < n - 1) {
+    if (k === -1 || p[j] === p[k]) {
+      j++; k++;
+      if (p[j] !== p[k]) { nv[j] = k; }
+      else { nv[j] = nv[k]; }
+    } else { k = nv[k]; }
+  }
+  return nv;
+}
+function kmpMatch(t, p) {
+  if (p.length === 0) return 0;
+  const next = calcNext(p);
+  let i = 0, j = 0;
+  while (i < t.length && j < p.length) {
+    if (j === -1 || t[i] === p[j]) { i++; j++; }
+    else { j = next[j]; }
+  }
+  return j === p.length ? i - j : -1;
+}
+function bfMatch(t, p) {
+  if (p.length === 0) return 0;
+  for (let i = 0; i + p.length <= t.length; i++) {
+    let ok = true;
+    for (let k = 0; k < p.length; k++) { if (t[i + k] !== p[k]) { ok = false; break; } }
+    if (ok) return i;
+  }
+  return -1;
+}
+
+D.register({
+  id: 'quiz', title: '测试中心', icon: '📝', group: '导航', order: 1, special: true,
+  keywords: '测试 练习 题库 自测 答案 复习',
+  build(doc) {
+    const groups = D.quizTopics();
+    const total = D.quizTotal();
+
+    /* ---------- 头部 ---------- */
+    const hero = D.el('div', 'hero');
+    hero.style.padding = '8px 4px 0';
+    hero.innerHTML = '<h1>📝 测试中心</h1>' +
+      '<p><b>讲解归讲解，测试归测试。</b>所有章节的动手练都集中在这里 —— ' +
+      '左侧各章只负责讲清楚（概念 → 动画 → 要点 → 代码），这一页专门用来检查你到底会不会写。</p>';
+    doc.appendChild(hero);
+
+    const stat = D.el('div', 'mini');
+    stat.innerHTML =
+      '<div><b>' + total + '</b><span>道动手练</span></div>' +
+      '<div><b>' + groups.length + '</b><span>个章节</span></div>' +
+      '<div><b>' + (total ? '3' : '0') + '</b><span>语言（C / C++ / Rust）</span></div>' +
+      '<div><b>0</b><span>需要联网</span></div>';
+    doc.appendChild(stat);
+
+    /* ---------- 工具栏 ---------- */
+    const bar = D.el('div', 'card');
+    bar.style.padding = '14px 18px';
+    bar.innerHTML =
+      '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">' +
+      '<span style="font-size:13px;color:#93a6c8">按章节筛选：</span>' +
+      '<select data-k="filter" style="padding:6px 10px;border-radius:8px;border:1px solid var(--line2);background:#0b1322;color:var(--text);font-size:13px;outline:none">' +
+      '<option value="all">全部章节（' + total + ' 题）</option>' +
+      groups.map(function (g) {
+        return '<option value="' + g.topic.id + '">' + D.esc(g.topic.title) + '（' + g.items.length + ' 题）</option>';
+      }).join('') +
+      '</select>' +
+      '<button class="btn" data-k="open">展开全部答案</button>' +
+      '<button class="btn" data-k="close">收起全部答案</button>' +
+      '<a class="btn primary" href="#/home" style="margin-left:auto;text-decoration:none">← 回到目录</a>' +
+      '</div>' +
+      '<div style="margin-top:10px;font-size:12.5px;color:#6d80a3">' +
+      '建议用法：先<b>遮住答案自己写</b>，卡住了再点「看提示 / 参考答案」。答案里有 C / C++ / Rust 三种写法，默认跟随你在右上角选的代码语言。</div>';
+    doc.appendChild(bar);
+
+    /* ---------- KMP 自测器 ---------- */
+    const tool = D.card({ title: '自测工具：手填 next 数组，再对答案', icon: '🛠', badge: 'KMP' });
+    const tb = tool.querySelector('.body');
+    const IS = 'padding:6px 10px;border-radius:8px;border:1px solid var(--line2);background:#0b1322;color:var(--text);font-family:var(--mono);font-size:13px;outline:none';
+    const toolWrap = D.el('div');
+    toolWrap.innerHTML =
+      '<p style="color:#93a6c8;font-size:13.5px">在下面输入一个模式串（比如 <code class="inl">ababaa</code>），' +
+      '先在纸上自己算 next，再点「对答案」看算得对不对。也可以输入主串，顺便验证 KMP 和 BF 的结果一致。</p>' +
+      '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">' +
+      '<label style="font-size:12px;color:#93a6c8">主串 T<br><input data-k="text" value="ababcabcacbab" style="' + IS + ';width:230px"></label>' +
+      '<label style="font-size:12px;color:#93a6c8">模式串 P<br><input data-k="pat" value="abcac" style="' + IS + ';width:150px"></label>' +
+      '<button class="btn primary" data-k="go">对答案</button>' +
+      '</div>' +
+      '<div data-k="out" style="margin-top:16px"></div>';
+    tb.appendChild(toolWrap);
+
+    const g = function (k) { return toolWrap.querySelector('[data-k="' + k + '"]'); };
+
+    function cellRow(label, arr, cls) {
+      let h = '<div style="display:flex;gap:6px;align-items:center;margin:5px 0">' +
+        '<span style="width:86px;text-align:right;font-family:var(--mono);font-size:12px;color:#6d80a3">' + label + '</span>';
+      arr.forEach(function (v) {
+        h += '<span class="cell ' + (cls || '') + '" style="min-width:38px;height:32px;font-size:12.5px;border-radius:7px">' + v + '</span>';
+      });
+      return h + '</div>';
+    }
+
+    function run() {
+      const t = g('text').value;
+      const p = g('pat').value;
+      const out = g('out');
+      if (!p) { out.innerHTML = '<span style="color:#ff6b81">模式串不能为空</span>'; return; }
+      const next = calcNext(p);
+      const nv = calcNextval(p);
+      const chars = p.split('');
+
+      let h = cellRow('P', chars, '');
+      h += cellRow('下标 j', chars.map(function (_, i) { return i; }), 'empty');
+      h += cellRow('next[j]', next, 'hl2');
+      h += cellRow('nextval[j]', nv, 'hl3');
+
+      h += '<div style="margin-top:12px;font-family:var(--mono);font-size:13px;line-height:1.9">' +
+        'next    = [' + next.join(', ') + ']<br>' +
+        'nextval = [' + nv.join(', ') + ']<br>' +
+        '<span style="color:#7ef0e6">KMP 匹配位置 = ' + kmpMatch(t, p) + '</span>　' +
+        '<span style="color:#6d80a3">（BF 交叉验证 = ' + bfMatch(t, p) + '，两个数必须一样）</span>' +
+        '</div>';
+
+      if (next.join() === nv.join()) {
+        h += '<div style="margin-top:8px;font-size:12.5px;color:#6d80a3">这个模式串恰好没有"next 和 nextval 相同冗余"的情况，两者一致。</div>';
+      }
+      out.innerHTML = h;
+    }
+    g('go').addEventListener('click', run);
+    g('pat').addEventListener('keydown', function (e) { if (e.key === 'Enter') run(); });
+    run();
+    doc.appendChild(tool);
+
+    /* ---------- 题库 ---------- */
+    const listWrap = D.el('div');
+    let idx = 0;
+    groups.forEach(function (grp) {
+      const sec = D.el('section', 'card quizsec');
+      sec.dataset.topic = grp.topic.id;
+      sec.innerHTML = '<h2>' + grp.topic.icon + ' ' + D.esc(grp.topic.title) +
+        '<span class="badge">' + grp.items.length + ' 题</span>' +
+        '<a href="#/' + grp.topic.id + '" style="margin-left:auto;font-size:12.5px;font-weight:400">去看讲解 →</a></h2>';
+      const body = D.el('div', 'qbody');
+      grp.items.forEach(function (html, i) {
+        idx++;
+        const box = D.el('div', 'qitem');
+        box.innerHTML =
+          '<div class="qno">' + (i + 1) + '</div>' +
+          '<div class="qmain">' + html.replace('<b>✎ 动手练：</b>', '') + '</div>';
+        body.appendChild(box);
+      });
+      sec.appendChild(body);
+      listWrap.appendChild(sec);
+    });
+    doc.appendChild(listWrap);
+
+    /* ---------- 交互 ---------- */
+    g('filter').addEventListener('change', function () {
+      const v = this.value;
+      Array.prototype.forEach.call(listWrap.querySelectorAll('.quizsec'), function (s) {
+        s.style.display = (v === 'all' || s.dataset.topic === v) ? '' : 'none';
+      });
+    });
+    function allDetails(open) {
+      Array.prototype.forEach.call(listWrap.querySelectorAll('details.ans'), function (d) { d.open = open; });
+    }
+    g('open').addEventListener('click', function () { allDetails(true); });
+    g('close').addEventListener('click', function () { allDetails(false); });
+
+    /* ---------- 结尾 ---------- */
+    const tail = D.card({ title: '怎么用这份题库', icon: '💡', badge: '建议' });
+    D.html(tail.querySelector('.body'),
+      '<h3 class="sec">1. 先遮住答案，用纸写</h3>' +
+      '<p>看到题目先在纸上写，写不出来再展开答案。<b>看懂和写出来之间隔着一整个熟练度</b>，' +
+      '点开答案看一眼就"哦我会了"是最没用的学习方式。</p>' +
+      '<h3 class="sec">2. 写完再跑一遍</h3>' +
+      '<p>答案里的代码都是能直接编译运行的。C / C++ 用 <code class="inl">cl /utf-8</code> 或 <code class="inl">gcc</code>，' +
+      'Rust 用 <code class="inl">rustc --edition 2021</code>。跑通比"看起来对"可靠得多。</p>' +
+      '<h3 class="sec">3. 三遍法</h3>' +
+      '<p>第一遍：对着讲解照着抄一遍；第二遍：合上讲解默写，卡住就重来；第三遍：隔一天再默写一次。' +
+      '三遍都过，这题才算真的会了。</p>' +
+      D.note('tip', '题库会跟着章节一起长',
+        '每章的练习都写在章节源码里（<code class="inl">D.quiz(章节 id, [...])</code>），' +
+        '所以你在某一章加了题，刷新这一页就能看到，不用另外维护。'));
+    doc.appendChild(tail);
   }
 });
 })();
