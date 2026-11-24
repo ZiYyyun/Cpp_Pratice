@@ -24,3 +24,4 @@ build/
 # Local tool logs and settings (not part of the project)
 Logs/
 Settings/
+debug.log

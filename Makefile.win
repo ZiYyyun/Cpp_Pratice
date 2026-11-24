@@ -1,18 +1,18 @@
-# Project: ÏîÄ¿2
+# Project: é¡¹ç›®2
 # Makefile created by Dev-C++ 5.11
 
 CPP      = g++.exe
 CC       = gcc.exe
 WINDRES  = windres.exe
 RES      = pro1_private.res
-OBJ      = main.o arr_pp_demo.o ptr_for_arr.o $(RES)
-LINKOBJ  = main.o arr_pp_demo.o ptr_for_arr.o $(RES)
+OBJ      = main.o 01_pointer_array/arr_pp_demo.o 01_pointer_array/ptr_for_arr.o 02_linear_list/sequential_list/Dynamic_arr.o 02_linear_list/linked_list/List.o 03_stack_queue/Stack.o 03_stack_queue/Queue.o $(RES)
+LINKOBJ  = $(OBJ)
 LIBS     = -L"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib" -L"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/lib" -static-libgcc
-INCS     = -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include"
-CXXINCS  = -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include/c++"
+INCS     = -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include" -I01_pointer_array -I02_linear_list/sequential_list -I02_linear_list/linked_list -I03_stack_queue
+CXXINCS  = -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include/c++" -I01_pointer_array -I02_linear_list/sequential_list -I02_linear_list/linked_list -I03_stack_queue
 BIN      = pro1.exe
-CXXFLAGS = $(CXXINCS) 
-CFLAGS   = $(INCS) 
+CXXFLAGS = $(CXXINCS)
+CFLAGS   = $(INCS)
 RM       = rm.exe -f
 
 .PHONY: all all-before all-after clean clean-custom
@@ -28,12 +28,23 @@ $(BIN): $(OBJ)
 main.o: main.cpp
 	$(CPP) -c main.cpp -o main.o $(CXXFLAGS)
 
-arr_pp_demo.o: arr_pp_demo.cpp
-	$(CPP) -c arr_pp_demo.cpp -o arr_pp_demo.o $(CXXFLAGS)
+01_pointer_array/arr_pp_demo.o: 01_pointer_array/arr_pp_demo.cpp
+	$(CPP) -c 01_pointer_array/arr_pp_demo.cpp -o 01_pointer_array/arr_pp_demo.o $(CXXFLAGS)
 
-ptr_for_arr.o: ptr_for_arr.cpp
-	$(CPP) -c ptr_for_arr.cpp -o ptr_for_arr.o $(CXXFLAGS)
+01_pointer_array/ptr_for_arr.o: 01_pointer_array/ptr_for_arr.cpp
+	$(CPP) -c 01_pointer_array/ptr_for_arr.cpp -o 01_pointer_array/ptr_for_arr.o $(CXXFLAGS)
 
-pro1_private.res: pro1_private.rc 
-	$(WINDRES) -i pro1_private.rc --input-format=rc -o pro1_private.res -O coff 
+02_linear_list/sequential_list/Dynamic_arr.o: 02_linear_list/sequential_list/Dynamic_arr.cpp
+	$(CPP) -c 02_linear_list/sequential_list/Dynamic_arr.cpp -o 02_linear_list/sequential_list/Dynamic_arr.o $(CXXFLAGS)
 
+02_linear_list/linked_list/List.o: 02_linear_list/linked_list/List.cpp
+	$(CPP) -c 02_linear_list/linked_list/List.cpp -o 02_linear_list/linked_list/List.o $(CXXFLAGS)
+
+03_stack_queue/Stack.o: 03_stack_queue/Stack.cpp
+	$(CPP) -c 03_stack_queue/Stack.cpp -o 03_stack_queue/Stack.o $(CXXFLAGS)
+
+03_stack_queue/Queue.o: 03_stack_queue/Queue.cpp
+	$(CPP) -c 03_stack_queue/Queue.cpp -o 03_stack_queue/Queue.o $(CXXFLAGS)
+
+pro1_private.res: pro1_private.rc
+	$(WINDRES) -i pro1_private.rc --input-format=rc -o pro1_private.res -O coff
